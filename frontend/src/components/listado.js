@@ -1,63 +1,109 @@
-import { listarEquipos, eliminarEquipo } from "../modules/equipos.js";
-import { mostrarMensaje } from "./mensajes.js";
-
-const POR_PAGINA = 6;
-
-const $lista = document.querySelector("#lista-equipos");
-const $plantilla = document.querySelector("#tpl-equipo");
-const $resumen = document.querySelector("#resumen");
-const $paginaActual = document.querySelector("#pagina-actual");
-const $btnAnterior = document.querySelector("#btn-anterior");
-const $btnSiguiente = document.querySelector("#btn-siguiente");
+import { listarEquipos, eliminarEquipo } from '../modules/equipos.js';
 
 let paginaActual = 1;
-let ultimaPagina = 1;
+let totalPaginas = 1;
 
-// YA IMPLEMENTADO — "2026-09-15" -> "15 set 2026"
-export const formatearFecha = (iso) =>
-  new Date(`${iso}T00:00:00`).toLocaleDateString("es-CR", { day: "numeric", month: "short", year: "numeric" });
+export async function cargarPagina(pagina = 1) {
+    const contenedor = document.querySelector('#contenedor-equipos');
+    const btnAnterior = document.querySelector('#btn-anterior');
+    const btnSiguiente = document.querySelector('#btn-siguiente');
+    const spanPagina = document.querySelector('#span-pagina');
+    const spanResumen = document.querySelector('#span-resumen');
+    const inputBusqueda = document.querySelector('#input-busqueda');
+    const selectEstado = document.querySelector('#select-estado-filtro');
 
-/**
- * TODO [F2] Listado y paginación.
- *
- * cargarPagina(pagina):
- *  - Marque la lista como ocupada (aria-busy="true") mientras carga y desmárquela al terminar.
- *  - Obtenga la página con listarEquipos(pagina, POR_PAGINA).
- *  - Vacíe la lista y, por cada equipo, clone #tpl-equipo y llene:
- *      .codigo, .nombre, .categoria (nombre de la categoría), .fecha (con formatearFecha)
- *      .estado  -> texto del estado y atributo data-estado="<estado>" (el CSS le da color)
- *      li       -> atributo data-id="<id>"
- *    Use SIEMPRE textContent con los datos de la API (nunca innerHTML).
- *  - Si no hay equipos, muestre un <li class="vacio"> con "No hay equipos registrados."
- *  - #resumen:      "Mostrando <from>–<to> de <total>"
- *  - #pagina-actual: "Página <current_page> de <last_page>"
- *  - Deshabilite #btn-anterior en la primera página y #btn-siguiente en la última.
- *  - Si falla, muestre el error con mostrarMensaje("error", ...).
- */
-export const cargarPagina = async (pagina = 1) => {
-  // TODO
-};
+    if (!contenedor) return;
+    contenedor.setAttribute('aria-busy', 'true');
+    
+    try {
+        const params = { page: pagina, per_page: 10 };
+        if (inputBusqueda?.value) params.q = inputBusqueda.value;
+        if (selectEstado?.value) params.estado = selectEstado.value;
 
-/**
- * TODO [F4] Eliminación con manejo de reglas de negocio.
- *
- * Use DELEGACIÓN DE EVENTOS: un solo listener en $lista que detecte clics en .btn-eliminar.
- *  - Pida confirmación con confirm().
- *  - Llame a eliminarEquipo(id).
- *  - 204: muestre "Equipo eliminado." y recargue la página actual
- *         (si era el último de la página y no es la primera, vaya a la anterior).
- *  - 409: muestre el mensaje que envía la API (error.datos.mensaje).
- *  - Otro error: muestre un mensaje general.
- */
-const alHacerClicEnLista = async (evento) => {
-  // TODO
-};
+        const resultado = await listarEquipos(params);
+        const equipos = resultado.data || [];
+        const meta = resultado.meta || {};
 
-// Parcialmente implementado: complete el TODO de los botones de paginación.
-export const iniciarListado = () => {
-  $lista.addEventListener("click", alHacerClicEnLista);
+        paginaActual = meta.current_page || pagina;
+        totalPaginas = meta.last_page || 1;
 
-  // TODO [F2] Conecte #btn-anterior y #btn-siguiente con cargarPagina()
+        contenedor.innerHTML = '';
 
-  cargarPagina(1);
-};
+        if (equipos.length === 0) {
+            contenedor.innerHTML = '<p class="estado-vacio">No se encontraron equipos registrados.</p>';
+        } else {
+            const template = document.querySelector('#tpl-equipo');
+            
+            equipos.forEach(eq => {
+                const clone = template.content.cloneNode(true);
+                
+                const card = clone.querySelector('.equipo-card');
+                if (card) {
+                    card.setAttribute('data-id', eq.id);
+                    card.setAttribute('data-estado', eq.estado);
+                }
+
+                clone.querySelector('[data-field="codigo"]').textContent = eq.codigo;
+                clone.querySelector('[data-field="nombre"]').textContent = eq.nombre;
+                clone.querySelector('[data-field="estado"]').textContent = eq.estado;
+                clone.querySelector('[data-field="categoria"]').textContent = eq.categoria?.nombre || 'Sin categoría';
+                clone.querySelector('[data-field="fecha"]').textContent = eq.fecha_adquisicion;
+
+                contenedor.appendChild(clone);
+            });
+        }
+
+        if (spanResumen) {
+            spanResumen.textContent = `Mostrando ${meta.from || 0}-${meta.to || 0} de ${meta.total || 0}`;
+        }
+        if (spanPagina) {
+            spanPagina.textContent = `Página ${paginaActual} de ${totalPaginas}`;
+        }
+        if (btnAnterior) btnAnterior.disabled = paginaActual <= 1;
+        if (btnSiguiente) btnSiguiente.disabled = paginaActual >= totalPaginas;
+
+    } catch (error) {
+        console.error('Error al listar equipos:', error);
+    } finally {
+        contenedor.removeAttribute('aria-busy');
+    }
+}
+
+export function iniciarListado() {
+    const btnAnterior = document.querySelector('#btn-anterior');
+    const btnSiguiente = document.querySelector('#btn-siguiente');
+    const inputBusqueda = document.querySelector('#input-busqueda');
+    const selectEstado = document.querySelector('#select-estado-filtro');
+    const contenedor = document.querySelector('#contenedor-equipos');
+
+    btnAnterior?.addEventListener('click', () => {
+        if (paginaActual > 1) cargarPagina(paginaActual - 1);
+    });
+
+    btnSiguiente?.addEventListener('click', () => {
+        if (paginaActual < totalPaginas) cargarPagina(paginaActual + 1);
+    });
+
+    inputBusqueda?.addEventListener('input', () => cargarPagina(1));
+    selectEstado?.addEventListener('change', () => cargarPagina(1));
+
+    contenedor?.addEventListener('click', async (e) => {
+        const btnEliminar = e.target.closest('.btn-eliminar');
+        if (!btnEliminar) return;
+
+        const card = btnEliminar.closest('.equipo-card');
+        const id = card?.getAttribute('data-id');
+        if (!id) return;
+
+        if (confirm('¿Está seguro de eliminar este equipo?')) {
+            try {
+                await eliminarEquipo(id);
+                await cargarPagina(paginaActual);
+            } catch (error) {
+                alert(error.data?.mensaje || error.message || 'Error al eliminar el equipo.');
+            }
+        }
+    });
+
+    cargarPagina(1);
+}

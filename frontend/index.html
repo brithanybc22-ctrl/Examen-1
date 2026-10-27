@@ -1,115 +1,127 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Control de préstamo de equipos del laboratorio" />
-    <title>Préstamo de Equipos · IF0009</title>
-  </head>
-  <body>
-    <header class="app-header">
-      <div class="marca">
-        <span class="marca-sigla" aria-hidden="true">IF</span>
-        <h1>Préstamo de Equipos</h1>
-      </div>
-      <div class="sesion" id="sesion" hidden>
-        <span id="usuario-nombre"></span>
-        <button type="button" id="btn-salir" class="btn btn-fantasma">Cerrar sesión</button>
-      </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Préstamo de Equipos</title>
+    <link rel="stylesheet" href="/src/styles/layout.css">
+</head>
+<body>
+    <!-- Vista de Login (necesaria para el main.js original) -->
+    <div id="vista-login" style="padding: 2rem; max-width: 400px; margin: 0 auto;">
+        <h2>Iniciar Sesión</h2>
+        <form id="form-login">
+          <form id="form-login" method="POST"></form>
+            <div style="margin-bottom: 1rem;">
+                <label>Correo:</label>
+                <input type="email" name="email" required style="width: 100%; padding: 0.5rem;">
+                <small class="error-msg" data-error="email"></small>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <label>Contraseña:</label>
+                <input type="password" name="password" required style="width: 100%; padding: 0.5rem;">
+                <small class="error-msg" data-error="password"></small>
+            </div>
+            <button type="submit" style="width: 100%; padding: 0.5rem;">Entrar</button>
+        </form>
+    </div>
+
+    <!-- Barra superior de sesión -->
+    <header id="sesion" hidden style="background: #333; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <span>Bienvenido, <strong id="usuario-nombre">Usuario</strong></span>
+        <button id="btn-salir" style="width: auto; padding: 0.3rem 1rem;">Cerrar Sesión</button>
     </header>
 
-    <div id="mensajes" class="mensajes" role="status" aria-live="polite"></div>
+    <!-- Vista Principal de la Aplicación -->
+    <div id="vista-app" hidden class="app-container" style="padding: 1.5rem;">
+        <aside class="formulario-container">
+            <h2>Registrar Nuevo Equipo</h2>
+            <form id="form-equipo">
+                <div class="form-group">
+                    <label for="codigo">Código:</label>
+                    <input type="text" id="codigo" name="codigo" required>
+                    <small class="error-msg" data-error="codigo"></small>
+                </div>
 
-    <!-- ===================== Vista de inicio de sesión (YA IMPLEMENTADA) ===================== -->
-    <section id="vista-login" class="vista-login" hidden>
-      <form id="form-login" class="card form-login" novalidate>
-        <h2>Iniciar sesión</h2>
-        <div class="campo">
-          <label for="login-email">Correo institucional</label>
-          <input id="login-email" name="email" type="email" autocomplete="username" required />
-          <p class="error-campo" data-error="email"></p>
-        </div>
-        <div class="campo">
-          <label for="login-password">Contraseña</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-          <p class="error-campo" data-error="password"></p>
-        </div>
-        <button type="submit" class="btn btn-primario">Entrar</button>
-      </form>
-    </section>
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" name="nombre" required>
+                    <small class="error-msg" data-error="nombre"></small>
+                </div>
 
-    <!-- ===================== Vista principal ===================== -->
-    <main id="vista-app" class="layout" hidden>
-      <aside class="panel-form card" aria-labelledby="titulo-form">
-        <h2 id="titulo-form">Registrar equipo</h2>
+                <div class="form-group">
+                    <label for="categoria_id">Categoría:</label>
+                    <select id="categoria_id" name="categoria_id" required>
+                        <option value="">Cargando categorías...</option>
+                    </select>
+                    <small class="error-msg" data-error="categoria_id"></small>
+                </div>
 
-        <form id="form-equipo" class="form-equipo" novalidate>
-          <div class="campo">
-            <label for="codigo">Código</label>
-            <input id="codigo" name="codigo" type="text" placeholder="EQ-0000" maxlength="20" required />
-            <p class="error-campo" data-error="codigo"></p>
-          </div>
+                <div class="form-group">
+                    <label for="estado">Estado:</label>
+                    <select id="estado" name="estado">
+                        <option value="disponible">Disponible</option>
+                        <option value="prestado">Prestado</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                    </select>
+                    <small class="error-msg" data-error="estado"></small>
+                </div>
 
-          <div class="campo">
-            <label for="nombre">Nombre</label>
-            <input id="nombre" name="nombre" type="text" maxlength="120" required />
-            <p class="error-campo" data-error="nombre"></p>
-          </div>
+                <div class="form-group">
+                    <label for="fecha_adquisicion">Fecha de Adquisición:</label>
+                    <input type="date" id="fecha_adquisicion" name="fecha_adquisicion" required>
+                    <small class="error-msg" data-error="fecha_adquisicion"></small>
+                </div>
 
-          <div class="campo">
-            <label for="categoria_id">Categoría</label>
-            <select id="categoria_id" name="categoria_id" required>
-              <option value="">Seleccione…</option>
-            </select>
-            <p class="error-campo" data-error="categoria_id"></p>
-          </div>
+                <div class="form-group">
+                    <label for="costo_interno">Costo Interno:</label>
+                    <input type="number" step="0.01" id="costo_interno" name="costo_interno" required>
+                    <small class="error-msg" data-error="costo_interno"></small>
+                </div>
 
-          <div class="campo">
-            <label for="fecha_adquisicion">Fecha de adquisición</label>
-            <input id="fecha_adquisicion" name="fecha_adquisicion" type="date" required />
-            <p class="error-campo" data-error="fecha_adquisicion"></p>
-          </div>
+                <button type="submit" id="btn-guardar">Guardar Equipo</button>
+            </form>
+        </aside>
 
-          <div class="campo">
-            <label for="costo_interno">Costo (₡)</label>
-            <input id="costo_interno" name="costo_interno" type="number" min="0" step="0.01" required />
-            <p class="error-campo" data-error="costo_interno"></p>
-          </div>
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h1>Préstamo de Equipos</h1>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="input-busqueda" placeholder="Buscar...">
+                    <select id="select-estado-filtro">
+                        <option value="">Todos</option>
+                        <option value="disponible">Disponible</option>
+                        <option value="prestado">Prestado</option>
+                        <option value="mantenimiento">Mantenimiento</option>
+                    </select>
+                </div>
+            </header>
 
-          <button type="submit" id="btn-guardar" class="btn btn-primario">Guardar</button>
-        </form>
-      </aside>
+            <section class="listado-section">
+                <div id="contenedor-equipos"></div>
+            </section>
 
-      <section class="panel-listado" aria-labelledby="titulo-listado">
-        <div class="barra-listado">
-          <h2 id="titulo-listado">Inventario</h2>
-          <p id="resumen" class="resumen"></p>
-        </div>
+            <footer class="paginacion" style="display: flex; justify-content: space-between; margin-top: 1rem;">
+                <button id="btn-anterior" disabled>Anterior</button>
+                <span id="span-resumen">Mostrando 0-0 de 0</span>
+                <span id="span-pagina">Página 1 de 1</span>
+                <button id="btn-siguiente" disabled>Siguiente</button>
+            </footer>
+        </main>
+    </div>
 
-        <ul id="lista-equipos" class="lista-equipos"></ul>
-
-        <nav class="paginacion" aria-label="Paginación del inventario">
-          <button type="button" id="btn-anterior" class="btn">← Anterior</button>
-          <span id="pagina-actual" class="pagina-actual"></span>
-          <button type="button" id="btn-siguiente" class="btn">Siguiente →</button>
-        </nav>
-      </section>
-    </main>
-
-    <!-- Plantilla de una tarjeta de equipo: clónela con template.content.cloneNode(true) -->
+    <!-- Template para las tarjetas -->
     <template id="tpl-equipo">
-      <li class="tarjeta">
-        <div class="tarjeta-cabecera">
-          <span class="codigo"></span>
-          <span class="estado"></span>
+        <div class="equipo-card" style="background: white; padding: 1rem; margin-bottom: 0.5rem; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h3 data-field="codigo"></h3>
+            <p><strong>Nombre:</strong> <span data-field="nombre"></span></p>
+            <p><strong>Estado:</strong> <span data-field="estado"></span></p>
+            <p><strong>Categoría:</strong> <span data-field="categoria"></span></p>
+            <p><strong>Adquisición:</strong> <span data-field="fecha"></span></p>
+            <button class="btn-eliminar" style="background: #dc3545; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 4px; cursor: pointer; margin-top: 0.5rem;">Eliminar</button>
         </div>
-        <h3 class="nombre"></h3>
-        <p class="categoria"></p>
-        <p class="fecha"></p>
-        <button type="button" class="btn btn-peligro btn-eliminar">Eliminar</button>
-      </li>
     </template>
 
     <script type="module" src="/src/main.js"></script>
-  </body>
+</body>
 </html>

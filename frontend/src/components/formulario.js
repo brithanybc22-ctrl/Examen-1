@@ -1,29 +1,90 @@
-import { crearEquipo, listarCategorias } from "../modules/equipos.js";
-import { mostrarMensaje } from "./mensajes.js";
+import { request } from '../modules/api.js';
+import { crearEquipo } from '../modules/equipos.js';
 
-const $form = document.querySelector("#form-equipo");
-const $selectCategoria = document.querySelector("#categoria_id");
-const $btnGuardar = document.querySelector("#btn-guardar");
+let categoriasCargadas = false;
 
-/**
- * TODO [F3] Formulario de registro de equipos.
- *
- * iniciarFormulario({ alGuardar }):
- *  1. Llene el <select id="categoria_id"> con listarCategorias()
- *     (cree cada <option> con createElement, value = id, texto = nombre).
- *  2. Al enviar el formulario (submit):
- *     - Evite el envío tradicional.
- *     - Limpie los errores anteriores: textContent de [data-error] y aria-invalid de los campos.
- *     - Construya el objeto con FormData. categoria_id y costo_interno deben ir como números.
- *     - Deshabilite #btn-guardar y cambie su texto a "Guardando…" mientras espera.
- *     - Llame a crearEquipo(datos).
- *     - Éxito: limpie el formulario, mostrarMensaje("exito", "Equipo <codigo> registrado.")
- *              y llame a alGuardar().
- *     - 422: por cada campo de error.datos.errors, escriba el PRIMER mensaje en
- *            el <p data-error="<campo>"> y marque el campo con aria-invalid="true".
- *     - Otro error: mostrarMensaje("error", ...).
- *     - Siempre (finally): rehabilite el botón y restaure su texto.
- */
-export const iniciarFormulario = ({ alGuardar }) => {
-  // TODO
-};
+export async function iniciarFormulario({ alGuardar } = {}) {
+    const form = document.querySelector('#form-equipo');
+    const selectCategoria = document.querySelector('#categoria_id');
+    const btnGuardar = document.querySelector('#btn-guardar');
+
+    if (!form) return;
+
+    // Cargar categorías solo si el select existe y no se han cargado antes en esta sesión
+    if (selectCategoria && !categoriasCargadas) {
+        try {
+            const categorias = await request('/categorias');
+            const listaCategorias = categorias.data || categorias; // Soporta ambos formatos de API
+            
+            if (Array.isArray(listaCategorias)) {
+                selectCategoria.innerHTML = '<option value="">Seleccione una categoría</option>';
+                listaCategorias.forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat.id;
+                    opt.textContent = cat.nombre;
+                    selectCategoria.appendChild(opt);
+                });
+                categoriasCargadas = true;
+            }
+        } catch (e) {
+            console.error('Error cargando categorías', e);
+        }
+    }
+
+    // Evitar duplicar el listener si la función se vuelve a invocar
+    if (form.dataset.listenerInitialized) return;
+    form.dataset.listenerInitialized = 'true';
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Limpiar errores previos
+        form.querySelectorAll('[data-error]').forEach(el => el.textContent = '');
+        form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+
+        const formData = new FormData(form);
+        const datos = {
+            codigo: formData.get('codigo'),
+            nombre: formData.get('nombre'),
+            categoria_id: formData.get('categoria_id') ? Number(formData.get('categoria_id')) : null,
+            estado: formData.get('estado') || undefined,
+            fecha_adquisicion: formData.get('fecha_adquisicion'),
+            costo_interno: formData.get('costo_interno') !== '' ? Number(formData.get('costo_interno')) : null,
+        };
+
+        if (btnGuardar) {
+            btnGuardar.disabled = true;
+            btnGuardar.textContent = 'Guardando...';
+        }
+
+        try {
+            await crearEquipo(datos);
+            form.reset();
+            
+            if (typeof alGuardar === 'function') {
+                alGuardar();
+            } else {
+                // En lugar de un window.location.reload() brusco que pueda causar bucles si hay un router mal configurado,
+                // puedes recargar datos de forma limpia o mantener la vista actual.
+                console.log('Equipo creado con éxito');
+            }
+        } catch (error) {
+            if (error.status === 422 && error.data?.errors) {
+                const errores = error.data.errors;
+                Object.keys(errores).forEach(campo => {
+                    const input = form.querySelector(`[name="${campo}"]`);
+                    const errorP = form.querySelector(`[data-error="${campo}"]`);
+                    if (input) input.setAttribute('aria-invalid', 'true');
+                    if (errorP) errorP.textContent = errores[campo][0];
+                });
+            } else {
+                alert(error.message || 'Ocurrió un error al guardar.');
+            }
+        } finally {
+            if (btnGuardar) {
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = 'Guardar Equipo';
+            }
+        }
+    });
+}
