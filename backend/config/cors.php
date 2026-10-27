@@ -21,7 +21,6 @@ return [
 
     'max_age' => 0,
 
-    // Se usa token Bearer, no cookies
     'supports_credentials' => false,
 
 ];

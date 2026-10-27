@@ -65,7 +65,7 @@ export async function iniciarFormulario({ alGuardar } = {}) {
                 alGuardar();
             } else {
                 // En lugar de un window.location.reload() brusco que pueda causar bucles si hay un router mal configurado,
-                // puedes recargar datos de forma limpia o mantener la vista actual.
+          
                 console.log('Equipo creado con éxito');
             }
         } catch (error) {

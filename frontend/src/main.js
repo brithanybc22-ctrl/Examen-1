@@ -1,4 +1,3 @@
-// YA IMPLEMENTADO — punto de entrada. Conecta las vistas con los módulos.
 import "./styles/base.css";
 import "./styles/layout.css";
 
@@ -25,9 +24,7 @@ const mostrarApp = () => {
   if (!appInicializada) {
     appInicializada = true;
     iniciarFormulario({ alGuardar: () => cargarPagina(1) });
-    
-    // PRUEBA 1: Comenta esta línea de abajo poniendo // al inicio:
-    // iniciarListado(); 
+    iniciarListado(); // Activado para cargar los registros al entrar
   }
 };
 
